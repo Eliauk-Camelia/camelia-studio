@@ -41,14 +41,22 @@ def cleanup_old_sessions() -> int:
 def create_session() -> str:
     return "sess_" + uuid.uuid4().hex[:12]
 
+def _read_session_file(session_id: str) -> dict | None:
+    path = SESSIONS_DIR / f"{session_id}.json"
+    if not path.exists():
+        return None
+    return json.loads(path.read_text(encoding="utf-8"))
+
 def save_session(session_id: str, messages: list[dict]) -> None:
     SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
+    existing = _read_session_file(session_id)
+    starred = existing.get("starred", False) if existing else False
     title = ""
     for m in messages:
         if m["role"] == "user":
             title = m["content"][:50]
             break
-    data = {"id": session_id, "title": title, "messages": messages}
+    data = {"id": session_id, "title": title, "starred": starred, "messages": messages}
     (SESSIONS_DIR / f"{session_id}.json").write_text(
         json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
     )
@@ -65,8 +73,18 @@ def list_sessions() -> list[dict]:
     result = []
     for f in sorted(SESSIONS_DIR.glob("*.json"), key=lambda p: p.stat().st_mtime, reverse=True):
         data = json.loads(f.read_text(encoding="utf-8"))
-        result.append({"id": data["id"], "title": data.get("title", ""), "count": len(data.get("messages", []))})
-    return result
+        result.append({
+            "id": data["id"],
+            "title": data.get("title", ""),
+            "count": len(data.get("messages", [])),
+            "starred": data.get("starred", False),
+        })
+    # 星标置顶
+    result.sort(key=lambda s: (not s["starred"], s["id"]), reverse=False)
+    # 未星标的按原始顺序 (mtime desc)，星标的在顶部
+    starred = [s for s in result if s["starred"]]
+    unstarred = [s for s in result if not s["starred"]]
+    return starred + unstarred
 
 def delete_session(session_id: str) -> None:
     path = SESSIONS_DIR / f"{session_id}.json"
@@ -88,6 +106,17 @@ async def api_load_session(session_id: str):
 async def api_delete_session(session_id: str):
     delete_session(session_id)
     return {"ok": True}
+
+@app.post("/api/sessions/{session_id}/star")
+async def api_toggle_star(session_id: str):
+    data = _read_session_file(session_id)
+    if not data:
+        return {"ok": False, "error": "会话不存在"}
+    data["starred"] = not data.get("starred", False)
+    (SESSIONS_DIR / f"{session_id}.json").write_text(
+        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    return {"ok": True, "starred": data["starred"]}
 
 
 # ─── WebSocket ─────────────────────────────────

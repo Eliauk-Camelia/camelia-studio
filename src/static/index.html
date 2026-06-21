@@ -325,10 +325,17 @@ async function loadSessionList() {
     const meta = document.createElement("div"); meta.className = "meta";
     meta.textContent = s.count + " 条消息";
     info.appendChild(title); info.appendChild(meta);
+    // 星标按钮
+    const starBtn = document.createElement("span"); starBtn.className = "star";
+    starBtn.textContent = s.starred ? "⭐" : "☆";
+    starBtn.style.cssText = "font-size:0.85rem;cursor:pointer;padding:2px 6px;border-radius:4px;opacity:0.6;transition:all 0.15s;";
+    starBtn.onmouseenter = () => starBtn.style.opacity = "1";
+    starBtn.onmouseleave = () => starBtn.style.opacity = "0.6";
+    starBtn.onclick = (e) => { e.stopPropagation(); toggleStar(s.id, starBtn); };
     const delBtn = document.createElement("span"); delBtn.className = "del";
     delBtn.textContent = "✕";
     delBtn.onclick = (e) => { e.stopPropagation(); delSession(s.id); };
-    div.appendChild(info); div.appendChild(delBtn);
+    div.appendChild(info); div.appendChild(starBtn); div.appendChild(delBtn);
     div.onclick = () => switchSession(s.id);
     list.appendChild(div);
   });
@@ -353,6 +360,15 @@ async function switchSession(id) {
   });
   loadSessionList();
   chat.scrollTop = chat.scrollHeight;
+}
+
+async function toggleStar(id, btn) {
+  const res = await fetch("/api/sessions/" + id + "/star", { method: "POST" });
+  const data = await res.json();
+  if (data.ok) {
+    btn.textContent = data.starred ? "⭐" : "☆";
+    loadSessionList();
+  }
 }
 
 async function delSession(id) {
