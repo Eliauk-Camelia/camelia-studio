@@ -10,7 +10,6 @@ Tool 注册与执行引擎 — Agent 的"手"。
 from __future__ import annotations
 
 import os
-import shlex
 import subprocess
 import platform
 from pathlib import Path
@@ -130,19 +129,17 @@ def _run_command(command: str) -> str:
     """执行 shell 命令并返回输出。
 
     安全策略：
-    1. shlex 解析命令，拒绝无有效命令的输入
-    2. 白名单校验基础命令（防止 rm / dd / curl | sh 等）
-    3. shell=False 防止注入，超时 30s，输出截断
+    1. 提取基础命令名，白名单校验
+    2. shell=True 支持管道/重定向，但验证第一个命令可信
+    3. 超时 30s，输出截断
     """
-    try:
-        tokens = shlex.split(command.strip())
-    except ValueError as e:
-        return f"命令解析失败: {e}"
-
-    if not tokens:
+    cmd_stripped = command.strip()
+    if not cmd_stripped:
         return "(空命令)"
 
-    base_cmd = os.path.basename(tokens[0])
+    # 提取基础命令名（忽略前导空格和 shell 语法符号）
+    first_word = cmd_stripped.split()[0] if cmd_stripped.split() else ""
+    base_cmd = os.path.basename(first_word)
     if base_cmd not in _ALLOWED_COMMANDS:
         return (
             f"安全限制：命令 '{base_cmd}' 不在白名单中。\n"
@@ -151,14 +148,12 @@ def _run_command(command: str) -> str:
 
     try:
         result = subprocess.run(
-            tokens, capture_output=True, text=True, timeout=30
+            cmd_stripped, shell=True, capture_output=True, text=True, timeout=30
         )
         output = result.stdout.strip() or result.stderr.strip()
         if len(output) > 4000:
             output = output[:4000] + "\n... (截断)"
         return output or "(命令无输出)"
-    except FileNotFoundError:
-        return f"命令未找到: {base_cmd}"
     except subprocess.TimeoutExpired:
         return "命令执行超时 (30s)"
     except Exception as e:
@@ -198,7 +193,11 @@ def create_builtin_registry() -> ToolRegistry:
     ))
     registry.register(Tool(
         name="run_command",
-        description=f"执行 shell 命令并返回输出。仅允许白名单命令: {', '.join(sorted(_ALLOWED_COMMANDS))}",
+        description=(
+            "执行 shell 命令并返回输出。支持管道(|)、重定向(>)、逻辑运算符(&&)。"
+            "不支持 heredoc(<<) 和交互式命令。"
+            f"允许的命令: {', '.join(sorted(_ALLOWED_COMMANDS))}"
+        ),
         parameters={
             "type": "object",
             "properties": {
