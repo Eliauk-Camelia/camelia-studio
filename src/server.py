@@ -170,4 +170,9 @@ if __name__ == "__main__":
     n = cleanup_old_sessions()
     if n:
         print(f"🧹 已清理 {n} 个超过 {SESSION_MAX_DAYS} 天的旧会话")
+
+    # 自动打开浏览器
+    import webbrowser, threading
+    threading.Timer(1.0, lambda: webbrowser.open("http://localhost:8648")).start()
+
     uvicorn.run(app, host="127.0.0.1", port=8648)
