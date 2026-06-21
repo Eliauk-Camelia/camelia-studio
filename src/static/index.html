@@ -318,8 +318,18 @@ async function loadSessionList() {
   data.sessions.forEach(s => {
     const div = document.createElement("div");
     div.className = "session-item" + (s.id === sessionId ? " active" : "");
-    div.innerHTML = `<div class="info"><div class="title">${escapeHtml(s.title || "(空)")}</div><div class="meta">${s.count} 条消息</div></div><span class="del" onclick="delSession(event, '${s.id}')">✕</span>`;
-    div.onclick = (e) => { if (!e.target.classList.contains("del")) switchSession(s.id); };
+    // 用 DOM API 替代 innerHTML，杜绝 XSS
+    const info = document.createElement("div"); info.className = "info";
+    const title = document.createElement("div"); title.className = "title";
+    title.textContent = s.title || "(空)";
+    const meta = document.createElement("div"); meta.className = "meta";
+    meta.textContent = s.count + " 条消息";
+    info.appendChild(title); info.appendChild(meta);
+    const delBtn = document.createElement("span"); delBtn.className = "del";
+    delBtn.textContent = "✕";
+    delBtn.onclick = (e) => { e.stopPropagation(); delSession(s.id); };
+    div.appendChild(info); div.appendChild(delBtn);
+    div.onclick = () => switchSession(s.id);
     list.appendChild(div);
   });
   } catch(err) { console.error("加载会话列表失败:", err); }
@@ -345,8 +355,7 @@ async function switchSession(id) {
   chat.scrollTop = chat.scrollHeight;
 }
 
-async function delSession(e, id) {
-  e.stopPropagation();
+async function delSession(id) {
   await fetch("/api/sessions/" + id, { method: "DELETE" });
   if (sessionId === id) newSession();
   else loadSessionList();

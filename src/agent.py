@@ -9,6 +9,7 @@ AI Agent 骨架 — 你来把它变活。
 
 import os
 import json
+from pathlib import Path
 from openai import OpenAI
 from dotenv import load_dotenv
 from pathlib import Path
@@ -105,6 +106,16 @@ def agent_loop(messages, tools):
 # 以下是测试代码，你不需要改
 # ============================================================
 
+# 路径安全检查：只允许在指定目录内操作
+_SAFE_ROOTS = [str(Path.home()), "/home/arch/Desktop", "/tmp"]
+
+def _check_path(path_str: str) -> Path | str:
+    p = Path(path_str).expanduser().resolve()
+    if any(str(p).startswith(r + os.sep) or str(p) == r for r in _SAFE_ROOTS):
+        return p
+    return f"安全限制: 禁止访问 {path_str} (仅允许 {', '.join(_SAFE_ROOTS)})"
+
+
 # 内置工具
 TOOLS = [
     {
@@ -200,25 +211,23 @@ def execute_tool(name, args):           # 执行工具
         except Exception as e:
             return f"计算出错: {e}"
     elif name == "read_file":
-        from pathlib import Path
-        p = Path(args["path"]).expanduser()
-        if not p.exists():
-            return f"文件不存在: {args['path']}"
+        p = _check_path(args["path"])
+        if isinstance(p, str): return p
+        if not p.exists(): return f"文件不存在: {args['path']}"
         content = p.read_text(encoding="utf-8", errors="replace")
         if len(content) > 8000:
             content = content[:8000] + f"\n... (截断，共 {len(content)} 字符)"
         return content
     elif name == "write_file":
-        from pathlib import Path
-        p = Path(args["path"]).expanduser()
+        p = _check_path(args["path"])
+        if isinstance(p, str): return p
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(args["content"], encoding="utf-8")
         return f"已写入: {p} ({len(args['content'])} 字符)"
     elif name == "list_dir":
-        from pathlib import Path
-        p = Path(args.get("path", ".")).expanduser()
-        if not p.exists() or not p.is_dir():
-            return f"目录不存在: {p}"
+        p = _check_path(args.get("path", "."))
+        if isinstance(p, str): return p
+        if not p.exists() or not p.is_dir(): return f"目录不存在: {p}"
         items = sorted(p.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
         lines = []
         for item in items[:100]:
