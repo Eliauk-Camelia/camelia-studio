@@ -13,15 +13,30 @@ import uvicorn
 import json
 import traceback
 import uuid
+from datetime import datetime
 
 
 app = FastAPI()
 
 STATIC_DIR = Path(__file__).parent / "static"
 SESSIONS_DIR = Path.home() / ".camelia-studio" / "sessions"
+SESSION_MAX_DAYS = 30  # 会话保留天数
 
 
 # ─── 会话存储 ──────────────────────────────────
+
+def cleanup_old_sessions() -> int:
+    """删除超过 SESSION_MAX_DAYS 天的旧会话，返回删除数量。"""
+    if not SESSIONS_DIR.exists():
+        return 0
+    now = datetime.now().timestamp()
+    cutoff = now - SESSION_MAX_DAYS * 86400
+    deleted = 0
+    for f in SESSIONS_DIR.glob("*.json"):
+        if f.stat().st_mtime < cutoff:
+            f.unlink()
+            deleted += 1
+    return deleted
 
 def create_session() -> str:
     return "sess_" + uuid.uuid4().hex[:12]
@@ -122,4 +137,7 @@ async def index():
 
 
 if __name__ == "__main__":
+    n = cleanup_old_sessions()
+    if n:
+        print(f"🧹 已清理 {n} 个超过 {SESSION_MAX_DAYS} 天的旧会话")
     uvicorn.run(app, host="127.0.0.1", port=8648)
