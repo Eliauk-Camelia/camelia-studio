@@ -9,6 +9,7 @@ AI Agent 骨架 — 你来把它变活。
 
 import os
 import json
+import subprocess
 from pathlib import Path
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -183,6 +184,20 @@ TOOLS = [
             },
         }
     },
+    {
+        "type": "function",
+        "function": {
+            "name": "run_command",
+            "description": "在终端执行 shell 命令并返回输出。用于编译、运行脚本、git 操作等。",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "command": {"type": "string", "description": "要执行的 shell 命令"}
+                },
+                "required": ["command"],
+            },
+        }
+    },
 ]
 
 
@@ -238,6 +253,20 @@ def execute_tool(name, args):           # 执行工具
         if len(items) > 100:
             result += f"\n... (共 {len(items)} 项，仅显示前 100)"
         return result or "(空目录)"
+    elif name == "run_command":
+        try:
+            result = subprocess.run(
+                args["command"], shell=True, capture_output=True,
+                text=True, timeout=30
+            )
+            output = result.stdout.strip() or result.stderr.strip()
+            if len(output) > 4000:
+                output = output[:4000] + "\n... (截断)"
+            return output or "(命令无输出)"
+        except subprocess.TimeoutExpired:
+            return "命令执行超时 (30s)"
+        except Exception as e:
+            return f"命令执行失败: {e}"
     return f"未知工具: {name}"
 
 
