@@ -313,10 +313,16 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.get("/")
 async def index():
-    return FileResponse(STATIC_DIR / "index.html")
+    return FileResponse(STATIC_DIR / "index.html", headers={
+        "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+        "Pragma": "no-cache",
+    })
 
 
 if __name__ == "__main__":
+    # 确保端口未被旧进程占用
+    import signal, sys as _sys
+    _sys.stdout.flush()
     n = cleanup_old_sessions()
     if n:
         print(f"🧹 已清理 {n} 个超过 {SESSION_MAX_DAYS} 天的旧会话")
