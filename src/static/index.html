@@ -4,414 +4,423 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
 <title>Camelia Studio</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   :root {
-    --ink:       #0d1210;
-    --leaf:      #141c18;
-    --moss:      #1a231e;
-    --bark:      #232d28;
-    --stone:     #2c3832;
-    --mist:      #8b958b;
-    --mist-dim:  #5a655c;
-    --petal:     #e8927c;
-    --petal-dim: #c47260;
-    --sage:      #8ba389;
-    --sage-dim:  #5c725a;
-    --dew:       #f0ece6;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.4);
-    --sidebar-w: 260px;
+    --bg:        #1e1e1e;
+    --bg-light:  #252526;
+    --bg-hover:  #2a2d2e;
+    --bg-active: #37373d;
+    --border:    #3c3c3c;
+    --fg:        #cccccc;
+    --fg-dim:    #858585;
+    --fg-bright: #e0e0e0;
+    --accent:    #007acc;
+    --accent2:   #e8927c;
+    --green:     #4ec9b0;
+    --status-bg: #007acc;
     --activity-w: 48px;
-    --status-h: 26px;
-    --glow-petal: rgba(232,146,124,0.12);
+    --sidebar-w: 280px;
+    --status-h: 22px;
+    --panel-h: 0px; /* collapsed by default */
   }
 
   * { margin:0; padding:0; box-sizing:border-box; }
 
   body {
-    font-family: 'Noto Serif SC', serif;
-    background: var(--ink);
-    color: var(--dew);
+    font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--fg);
     display: grid;
     grid-template-columns: var(--activity-w) var(--sidebar-w) 1fr;
-    grid-template-rows: 1fr var(--status-h);
+    grid-template-rows: 1fr var(--panel-h) var(--status-h);
     height: 100dvh; overflow: hidden;
-    -webkit-font-smoothing: antialiased;
+    font-size: 13px;
+    user-select: none;
   }
 
   /* ═══ 活动栏 ═══ */
   .activity-bar {
-    grid-row: 1; grid-column: 1;
-    background: var(--leaf);
-    border-right: 1px solid rgba(255,255,255,0.04);
+    grid-row: 1 / -1; grid-column: 1;
+    background: var(--bg-light);
     display: flex; flex-direction: column; align-items: center;
-    padding: 10px 0; gap: 4px; z-index: 3;
+    padding-top: 4px;
+    border-right: 1px solid var(--border);
+    z-index: 10;
   }
+  .act-top { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .act-bot { display: flex; flex-direction: column; align-items: center; padding-bottom: 4px; }
   .act-btn {
-    width: 36px; height: 36px;
-    display: flex; align-items: center; justify-content: center;
-    border-radius: 8px; cursor: pointer;
-    font-size: 1.1rem; color: var(--mist-dim);
-    border: none; background: transparent;
-    transition: all 0.15s; position: relative;
+    width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;
+    cursor: pointer; border: none; background: transparent; color: var(--fg-dim);
+    font-size: 1.25rem; transition: all 0.1s; position: relative;
+    border-left: 2px solid transparent;
   }
-  .act-btn:hover { color: var(--dew); background: var(--bark); }
-  .act-btn.active { color: var(--petal); }
-  .act-btn.active::before {
-    content: ''; position: absolute; left: 0; top: 6px; bottom: 6px;
-    width: 2px; background: var(--petal); border-radius: 0 2px 2px 0;
-  }
+  .act-btn:hover { color: var(--fg-bright); }
+  .act-btn.active { color: var(--fg-bright); border-left-color: var(--fg-bright); }
 
   /* ═══ 侧边栏 ═══ */
   .sidebar {
     grid-row: 1; grid-column: 2;
-    background: var(--leaf);
-    border-right: 1px solid rgba(255,255,255,0.04);
+    background: var(--bg-light);
     display: flex; flex-direction: column;
-    overflow: hidden; z-index: 2;
-    transition: margin-left 0.25s cubic-bezier(0.16,1,0.3,1);
+    border-right: 1px solid var(--border);
+    overflow: hidden; z-index: 5;
   }
-  .sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
+  .sidebar.collapsed { display: none; }
 
-  .sidebar-tabs {
-    display: flex; border-bottom: 1px solid rgba(255,255,255,0.04);
-    flex-shrink: 0;
+  .sidebar-section {
+    border-bottom: 1px solid var(--border);
+    display: flex; flex-direction: column;
   }
-  .sidebar-tab {
-    flex: 1; padding: 10px 8px; text-align: center;
-    font-size: 0.73rem; color: var(--mist-dim);
-    cursor: pointer; border: none; background: transparent;
-    border-bottom: 2px solid transparent;
-    font-family: 'Noto Serif SC', serif;
-    transition: all 0.15s;
+  .section-header {
+    padding: 8px 12px; font-size: 11px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    color: var(--fg-dim); cursor: pointer;
+    display: flex; align-items: center; justify-content: space-between;
   }
-  .sidebar-tab:hover { color: var(--mist); background: var(--moss); }
-  .sidebar-tab.active { color: var(--petal); border-bottom-color: var(--petal); }
-
-  .sidebar-panel { flex: 1; overflow-y: auto; display: none; }
-  .sidebar-panel.active { display: flex; flex-direction: column; }
+  .section-header:hover { color: var(--fg); }
+  .section-body { overflow: hidden; }
+  .section-body.collapsed { display: none; }
 
   .sidebar-new {
-    margin: 10px 10px 6px; padding: 9px;
-    background: var(--moss); border: 1px solid rgba(255,255,255,0.05);
-    border-radius: 8px; color: var(--sage);
-    font-family: 'Noto Serif SC', serif; font-size: 0.8rem;
-    cursor: pointer; text-align: center; transition: all 0.2s;
-    flex-shrink: 0;
+    margin: 4px 12px; padding: 5px 10px;
+    background: transparent; border: 1px solid var(--border);
+    border-radius: 4px; color: var(--fg);
+    font-family: inherit; font-size: 12px; cursor: pointer; text-align: center;
   }
-  .sidebar-new:hover { background: var(--bark); color: var(--petal); }
+  .sidebar-new:hover { background: var(--bg-hover); }
 
-  .session-list { flex: 1; overflow-y: auto; padding: 4px 8px; }
+  .session-list { overflow-y: auto; max-height: 300px; }
   .session-item {
-    padding: 9px 10px; margin: 2px 0; border-radius: 8px;
-    cursor: pointer; transition: background 0.15s, border-color 0.15s;
+    padding: 6px 24px; cursor: pointer;
     display: flex; align-items: center; justify-content: space-between;
-    border: 1px solid transparent; border-left: 3px solid transparent;
+    transition: background 0.1s;
   }
-  .session-item:hover { background: var(--moss); }
-  .session-item.active {
-    background: var(--bark);
-    border-color: rgba(232,146,124,0.15);
-    border-left-color: var(--petal);
-    box-shadow: inset 2px 0 8px rgba(232,146,124,0.06);
-  }
-  .session-item.active .title { color: var(--petal); }
-  .session-item .info { overflow: hidden; }
+  .session-item:hover { background: var(--bg-hover); }
+  .session-item.active { background: var(--bg-active); }
+  .session-item.active .title { color: var(--fg-bright); }
+  .session-item .info { overflow: hidden; flex: 1; }
   .session-item .title {
-    font-size: 0.8rem; color: var(--dew);
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    max-width: 145px;
+    font-size: 13px; color: var(--fg);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;
   }
   .session-item .meta {
-    font-size: 0.62rem; color: var(--mist-dim);
-    font-family: 'JetBrains Mono', monospace; margin-top: 1px;
+    font-size: 11px; color: var(--fg-dim); margin-top: 1px;
   }
-  .session-item .del {
-    opacity: 0; font-size: 0.7rem; color: var(--mist-dim);
-    padding: 2px 6px; border-radius: 4px; transition: all 0.15s;
+  .session-item .actions {
+    display: flex; gap: 2px; opacity: 0; transition: opacity 0.1s;
   }
-  .session-item:hover .del { opacity: 1; }
-  .session-item .del:hover { background: rgba(220,80,80,0.15); color: #e05555; }
+  .session-item:hover .actions { opacity: 1; }
+  .session-item .actions button {
+    background: none; border: none; color: var(--fg-dim);
+    cursor: pointer; font-size: 12px; padding: 2px 4px; border-radius: 3px;
+  }
+  .session-item .actions button:hover { background: var(--bg-active); color: var(--fg); }
+  .session-item .actions button.del:hover { color: #f44747; }
 
-  /* ── 记忆面板 ── */
-  .memory-search-bar {
-    padding: 10px; flex-shrink: 0;
+  /* ── 记忆搜索 ── */
+  .memory-box { padding: 8px 12px; }
+  .memory-box input {
+    width: 100%; padding: 4px 8px;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 3px; color: var(--fg); font-family: inherit; font-size: 12px; outline: none;
   }
-  .memory-search-bar input {
-    width: 100%; padding: 8px 10px;
-    background: var(--bark); border: 1px solid var(--stone);
-    border-radius: 8px; color: var(--dew);
-    font-family: 'Noto Serif SC', serif; font-size: 0.78rem; outline: none;
-    transition: border-color 0.2s;
-  }
-  .memory-search-bar input:focus { border-color: rgba(232,146,124,0.3); }
-  .memory-search-bar input::placeholder { color: var(--mist-dim); opacity: 0.5; }
-
-  .memory-list { flex: 1; overflow-y: auto; padding: 4px 10px; }
+  .memory-box input:focus { border-color: var(--accent); }
+  .memory-box input::placeholder { color: var(--fg-dim); }
+  .memory-list { overflow-y: auto; flex: 1; }
   .memory-item {
-    padding: 10px; margin: 4px 0; border-radius: 8px;
-    background: var(--moss); border: 1px solid rgba(255,255,255,0.03);
-    cursor: pointer; transition: background 0.15s;
+    padding: 6px 12px; cursor: pointer; transition: background 0.1s;
   }
-  .memory-item:hover { background: var(--bark); }
-  .memory-item .mem-title {
-    font-size: 0.78rem; color: var(--sage); margin-bottom: 4px;
-  }
+  .memory-item:hover { background: var(--bg-hover); }
+  .memory-item .mem-title { font-size: 12px; color: var(--fg); margin-bottom: 2px; }
   .memory-item .mem-preview {
-    font-size: 0.72rem; color: var(--mist-dim);
+    font-size: 11px; color: var(--fg-dim);
     overflow: hidden; display: -webkit-box;
-    -webkit-line-clamp: 3; -webkit-box-orient: vertical;
-    line-height: 1.4;
+    -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   }
   .memory-empty {
-    text-align: center; padding: 30px 16px;
-    font-size: 0.78rem; color: var(--mist-dim);
+    text-align: center; padding: 20px; font-size: 12px; color: var(--fg-dim);
   }
 
-  /* ═══ 主区域 ═══ */
+  /* ═══ 主内容区 ═══ */
   .main {
     grid-row: 1; grid-column: 3;
     display: flex; flex-direction: column; min-width: 0;
-    position: relative; z-index: 1;
   }
-  .header {
-    display: flex; align-items: center; gap: 10px;
-    padding: 10px 16px;
-    background: linear-gradient(180deg, var(--leaf) 0%, rgba(20,28,24,0.95) 100%);
-    border-bottom: 1px solid rgba(255,255,255,0.04);
-    backdrop-filter: blur(12px);
-  }
-  .model-switcher { flex: 1; display: flex; justify-content: center; }
-  .model-switcher select {
-    padding: 6px 32px 6px 12px;
-    background: var(--bark); border: 1px solid var(--stone);
-    border-radius: 10px; color: var(--dew);
-    font-family: 'Noto Serif SC', serif; font-size: 0.78rem;
-    cursor: pointer; outline: none;
-    appearance: none; -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b958b' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
-    background-repeat: no-repeat; background-position: right 10px center;
-    transition: border-color 0.2s;
-  }
-  .model-switcher select:hover { border-color: rgba(232,146,124,0.3); }
-  .model-switcher select:focus { border-color: rgba(232,146,124,0.4); }
 
-  #switchNotify {
-    display: none; padding: 7px 16px;
-    background: rgba(139,163,137,0.1);
-    border-bottom: 1px solid rgba(139,163,137,0.12);
-    text-align: center; font-size: 0.76rem; color: var(--sage);
+  /* 编辑器标签栏 (VS Code style, placeholder for future) */
+  .tabs-bar {
+    display: flex; align-items: center;
+    background: var(--bg-light); border-bottom: 1px solid var(--border);
+    padding: 0; min-height: 35px;
+  }
+  .tabs-bar .tab {
+    padding: 8px 16px; font-size: 13px; color: var(--fg);
+    border-right: 1px solid var(--border);
+    background: var(--bg); cursor: pointer;
+    display: flex; align-items: center; gap: 8px;
+    white-space: nowrap;
+  }
+  .tabs-bar .tab.active { background: var(--bg); border-bottom: 1px solid var(--bg); margin-bottom: -1px; }
+  .tabs-bar .tab .tab-icon { font-size: 14px; }
+  .tabs-spacer { flex: 1; }
+  .tab-model {
+    padding: 4px 12px; font-size: 12px; color: var(--fg-dim);
+    display: flex; align-items: center; gap: 6px;
+    border-left: 1px solid var(--border);
+  }
+  .tab-model select {
+    background: var(--bg); color: var(--fg); border: 1px solid var(--border);
+    border-radius: 3px; padding: 2px 6px; font-size: 12px; font-family: inherit; outline: none;
+  }
+
+  /* 编辑器区 / 聊天区 */
+  .editor-area {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
   }
 
   .chat {
-    flex: 1; overflow-y: auto; padding: 20px 16px 10px;
-    display: flex; flex-direction: column; gap: 6px;
-    scroll-behavior: smooth;
-  }
-  .chat::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: -1;
-    background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200'%3E%3Ccircle cx='100' cy='60' r='18' fill='none' stroke='%23e8927c' stroke-width='.8' opacity='.05'/%3E%3Ccircle cx='82' cy='78' r='16' fill='none' stroke='%23e8927c' stroke-width='.8' opacity='.05'/%3E%3Ccircle cx='118' cy='78' r='16' fill='none' stroke='%23e8927c' stroke-width='.8' opacity='.05'/%3E%3Ccircle cx='76' cy='98' r='16' fill='none' stroke='%23e8927c' stroke-width='.7' opacity='.05'/%3E%3Ccircle cx='124' cy='98' r='16' fill='none' stroke='%23e8927c' stroke-width='.7' opacity='.05'/%3E%3Ccircle cx='90' cy='115' r='15' fill='none' stroke='%23e8927c' stroke-width='.6' opacity='.04'/%3E%3Ccircle cx='110' cy='115' r='15' fill='none' stroke='%23e8927c' stroke-width='.6' opacity='.04'/%3E%3Ccircle cx='100' cy='100' r='6' fill='%23e8927c' opacity='.04'/%3E%3C/svg%3E") no-repeat 92% 92%/180px 180px;
+    flex: 1; overflow-y: auto; padding: 16px 20px;
+    display: flex; flex-direction: column; gap: 12px;
   }
 
   .welcome {
-    align-self: center; text-align: center;
-    margin: 60px 0 20px;
-    animation: welcomeIn .8s .2s ease-out forwards; opacity: 0;
+    flex: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    text-align: center; color: var(--fg-dim); gap: 8px;
   }
-  @keyframes welcomeIn { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-  .welcome-icon { font-size: 2.5rem; margin-bottom: 10px; }
-  .welcome-title { font-size: 1.1rem; font-weight: 600; margin-bottom: 4px; }
-  .welcome-sub { font-size: 0.82rem; color: var(--mist); }
+  .welcome-icon { font-size: 3rem; opacity: 0.3; }
+  .welcome-title { font-size: 1.2rem; font-weight: 500; color: var(--fg); }
+  .welcome-sub { font-size: 0.85rem; opacity: 0.7; }
 
   .msg {
-    max-width: 82%; padding: 11px 16px;
-    line-height: 1.7; font-size: 0.9rem;
-    animation: msgIn .35s cubic-bezier(.16,1,.3,1);
+    max-width: 80%; padding: 10px 16px;
+    line-height: 1.6; font-size: 14px;
+    animation: msgIn 0.2s ease-out;
     word-break: break-word;
   }
-  @keyframes msgIn { from{opacity:0;transform:translateY(10px) scale(.97)} to{opacity:1;transform:translateY(0) scale(1)} }
+  @keyframes msgIn { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
   .msg.user {
     align-self: flex-end;
-    background: linear-gradient(140deg, #c47260 0%, #b35a48 100%);
-    color: #fff; border-radius: 18px 18px 5px 18px;
-    box-shadow: 0 2px 12px rgba(180,90,72,.2); margin-left: 40px;
+    background: var(--accent); color: #fff;
+    border-radius: 8px; margin-left: 60px;
   }
   .msg.assistant {
     align-self: flex-start;
-    background: var(--moss); color: var(--dew);
-    border-radius: 18px 18px 18px 5px;
-    border: 1px solid rgba(255,255,255,.04);
-    box-shadow: var(--shadow-sm); margin-right: 40px;
-    white-space: pre-wrap;
+    background: var(--bg-light); color: var(--fg);
+    border-radius: 8px; border: 1px solid var(--border);
+    margin-right: 60px; white-space: pre-wrap;
   }
   .msg.assistant code {
-    font-family: 'JetBrains Mono', monospace; font-size: 0.82rem;
-    background: rgba(0,0,0,0.25); padding: 2px 6px; border-radius: 4px;
+    font-family: 'JetBrains Mono', monospace; font-size: 13px;
+    background: rgba(255,255,255,0.06); padding: 2px 6px; border-radius: 3px;
   }
   .msg.assistant pre {
-    background: rgba(0,0,0,0.3); padding: 12px 14px;
-    border-radius: 10px; overflow-x: auto; margin: 8px 0;
+    background: var(--bg); padding: 12px; border-radius: 6px;
+    overflow-x: auto; margin: 8px 0; border: 1px solid var(--border);
   }
   .msg.assistant pre code { background: none; padding: 0; }
   .msg.tool {
-    align-self: flex-start; display: flex; align-items: flex-start; gap: 8px;
-    background: transparent; color: var(--mist);
-    font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;
-    padding: 6px 0; max-width: 70%;
-    animation: toolIn .4s cubic-bezier(.16,1,.3,1);
+    align-self: flex-start; display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--fg-dim); padding: 4px 0;
+    font-family: 'JetBrains Mono', monospace;
   }
-  @keyframes toolIn { from{opacity:0;transform:translateX(-8px)} to{opacity:1;transform:translateX(0)} }
-  .msg.tool .dot {
-    width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 5px;
-  }
-  .msg.tool.tool-start .dot { background: var(--sage); box-shadow: 0 0 6px var(--sage-dim); animation: toolPulse 1.5s ease-in-out infinite; }
-  @keyframes toolPulse { 0%,100%{box-shadow:0 0 4px var(--sage-dim)} 50%{box-shadow:0 0 12px var(--sage)} }
-  .msg.tool.tool-end .dot { background: var(--petal); }
-  .msg.tool.tool-error .dot { background: #e05555; }
+  .msg.tool .dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; }
+  .msg.tool.tool-start .dot { background: var(--green); }
+  .msg.tool.tool-end .dot { background: var(--accent2); }
+  .msg.tool.tool-error .dot { background: #f44747; }
 
+  /* 输入栏 */
   .input-bar {
-    padding: 12px 16px 16px;
-    background: linear-gradient(0deg, var(--leaf) 0%, rgba(20,28,24,.97) 100%);
-    border-top: 1px solid rgba(255,255,255,.04);
-    backdrop-filter: blur(12px);
+    padding: 10px 16px;
+    background: var(--bg-light); border-top: 1px solid var(--border);
   }
   .input-wrap {
     display: flex; gap: 8px;
-    background: var(--bark); border: 1px solid var(--stone);
-    border-radius: 16px; padding: 4px;
-    transition: border-color .25s, box-shadow .25s;
+    background: var(--bg); border: 1px solid var(--border);
+    border-radius: 6px; padding: 4px;
   }
-  .input-wrap:focus-within { border-color: rgba(232,146,124,.3); box-shadow: 0 0 0 3px var(--glow-petal); }
+  .input-wrap:focus-within { border-color: var(--accent); }
   .input-wrap textarea {
-    flex: 1; padding: 10px 12px;
-    background: transparent; border: none;
-    color: var(--dew); font-family: 'Noto Serif SC', serif;
-    font-size: 0.88rem; resize: none; outline: none;
-    max-height: 120px; line-height: 1.5;
+    flex: 1; padding: 8px 10px;
+    background: transparent; border: none; color: var(--fg);
+    font-family: inherit; font-size: 13px; resize: none; outline: none;
+    max-height: 100px; line-height: 1.5;
   }
-  .input-wrap textarea::placeholder { color: var(--mist-dim); opacity: .6; }
+  .input-wrap textarea::placeholder { color: var(--fg-dim); }
   .input-wrap button {
-    padding: 10px 18px;
-    background: linear-gradient(135deg, var(--petal), var(--petal-dim));
-    color: #fff; border: none; border-radius: 13px;
-    font-family: 'Noto Serif SC', serif; font-size: .85rem; font-weight: 600;
-    cursor: pointer; transition: all .2s; flex-shrink: 0; align-self: flex-end;
+    padding: 8px 14px;
+    background: var(--accent); color: #fff; border: none; border-radius: 4px;
+    font-family: inherit; font-size: 13px; font-weight: 500;
+    cursor: pointer; flex-shrink: 0; align-self: flex-end;
   }
-  .input-wrap button:hover { filter: brightness(1.08); }
-  .input-wrap button:active { transform: scale(.95); }
-  .input-hint { text-align: center; font-size: .68rem; color: var(--mist-dim); margin-top: 6px; opacity: .6; }
+  .input-wrap button:hover { opacity: 0.9; }
+
+  #switchNotify {
+    display: none; padding: 6px 16px; text-align: center;
+    background: rgba(0,122,204,0.1); border-bottom: 1px solid rgba(0,122,204,0.2);
+    font-size: 12px; color: var(--accent);
+  }
+
+  /* ═══ 底部面板 ═══ */
+  .panel {
+    grid-row: 2; grid-column: 2 / -1;
+    background: var(--bg); border-top: 1px solid var(--border);
+    z-index: 5;
+  }
+  .panel-tabs {
+    display: flex; align-items: center; background: var(--bg-light);
+    border-bottom: 1px solid var(--border); padding: 0 8px;
+  }
+  .panel-tab {
+    padding: 4px 12px; font-size: 11px; text-transform: uppercase;
+    letter-spacing: 0.05em; color: var(--fg-dim); cursor: pointer;
+    border: none; background: transparent; font-family: inherit;
+    border-bottom: 1px solid transparent;
+  }
+  .panel-tab:hover { color: var(--fg); }
+  .panel-tab.active { color: var(--fg); border-bottom-color: var(--fg); }
+  .panel-content {
+    padding: 8px 12px; font-size: 12px; font-family: 'JetBrains Mono', monospace;
+    color: var(--fg-dim); display: none; height: 100%;
+  }
+  .panel-content.active { display: block; }
 
   /* ═══ 状态栏 ═══ */
   .status-bar {
-    grid-row: 2; grid-column: 1 / -1;
-    background: var(--leaf); border-top: 1px solid rgba(255,255,255,0.04);
-    display: flex; align-items: center; padding: 0 12px; gap: 14px;
-    font-size: 0.68rem; font-family: 'JetBrains Mono', monospace;
-    color: var(--mist-dim); z-index: 5;
+    grid-row: 3; grid-column: 1 / -1;
+    background: var(--status-bg); color: #fff;
+    display: flex; align-items: center; padding: 0 10px; gap: 12px;
+    font-size: 12px; z-index: 10;
   }
-  .status-dot {
-    width: 7px; height: 7px; border-radius: 50%;
-    background: var(--sage); box-shadow: 0 0 6px var(--sage);
-    animation: pulse-status 3s ease-in-out infinite; flex-shrink: 0;
-  }
-  @keyframes pulse-status { 0%,100%{opacity:1} 50%{opacity:.3} }
-  .status-item { display: flex; align-items: center; gap: 5px; }
+  .status-item { display: flex; align-items: center; gap: 4px; }
   .status-spacer { flex: 1; }
-  .status-mem { color: var(--sage-dim); }
+  .status-item .dot {
+    width: 6px; height: 6px; border-radius: 50%; background: #6a9955;
+  }
 
+  /* scrollbar */
   .chat::-webkit-scrollbar, .session-list::-webkit-scrollbar,
-  .memory-list::-webkit-scrollbar, .sidebar-panel::-webkit-scrollbar { width: 4px; }
-  .chat::-webkit-scrollbar-track, .session-list::-webkit-scrollbar-track,
-  .memory-list::-webkit-scrollbar-track { background: transparent; }
-  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb,
-  .memory-list::-webkit-scrollbar-thumb { background: var(--stone); border-radius: 10px; }
+  .memory-list::-webkit-scrollbar { width: 6px; }
+  .chat::-webkit-scrollbar-track, .session-list::-webkit-scrollbar-track { background: transparent; }
+  .chat::-webkit-scrollbar-thumb, .session-list::-webkit-scrollbar-thumb { background: var(--bg-active); border-radius: 3px; }
 
-  /* ── 移动端 ── */
   @media (max-width: 700px) {
-    body { grid-template-columns: 1fr; }
+    body { grid-template-columns: 1fr; grid-template-rows: 1fr var(--status-h); }
     .activity-bar { display: none; }
-    .sidebar {
-      position: fixed; left: 0; top: 0; bottom: var(--status-h); z-index: 10;
-      box-shadow: 4px 0 20px rgba(0,0,0,.5); width: var(--sidebar-w);
-    }
-    .sidebar.collapsed { margin-left: calc(-1 * var(--sidebar-w)); }
-    .msg { max-width: 92%; font-size: .85rem; padding: 10px 14px; }
-    .msg.user { margin-left: 12px; border-radius: 16px 16px 4px 16px; }
-    .msg.assistant { margin-right: 12px; border-radius: 16px 16px 16px 4px; }
-    .input-bar { padding: 10px 10px 14px; }
+    .sidebar { display: none; }
+    .panel { display: none; }
   }
 </style>
 </head>
 <body>
 
-<!-- ═══ 活动栏 ═══ -->
+<!-- ═══ 活动栏 (VS Code style) ═══ -->
 <nav class="activity-bar" id="activityBar">
-  <button class="act-btn active" data-panel="sessions" title="会话 (Ctrl+1)">💬</button>
-  <button class="act-btn" data-panel="memory" title="记忆 (Ctrl+2)">🧠</button>
+  <div class="act-top">
+    <button class="act-btn active" data-panel="explorer" title="Explorer (Ctrl+Shift+E)">📁</button>
+    <button class="act-btn" data-panel="memory" title="Memory (Ctrl+Shift+M)">🧠</button>
+    <button class="act-btn" data-panel="chat" title="Chat">💬</button>
+  </div>
+  <div class="act-bot">
+    <button class="act-btn" title="Settings">⚙</button>
+  </div>
 </nav>
 
 <!-- ═══ 侧边栏 ═══ -->
 <aside class="sidebar" id="sidebar">
-  <div class="sidebar-tabs">
-    <button class="sidebar-tab active" data-panel="sessions">会话</button>
-    <button class="sidebar-tab" data-panel="memory">记忆</button>
-  </div>
-
-  <!-- 会话面板 -->
-  <div class="sidebar-panel active" data-panel="sessions">
-    <button class="sidebar-new" onclick="newSession()">+ 新对话</button>
-    <div class="session-list" id="sessionList"></div>
-  </div>
-
-  <!-- 记忆面板 -->
-  <div class="sidebar-panel" data-panel="memory">
-    <div class="memory-search-bar">
-      <input type="text" id="memorySearchInput"
-       placeholder="搜索历史记忆..."
-       oninput="searchMemory()">
+  <!-- EXPLORER section -->
+  <div class="sidebar-section">
+    <div class="section-header" onclick="toggleSection(this)">
+      <span>▾ EXPLORER</span>
+      <span style="cursor:pointer;font-size:14px" onclick="event.stopPropagation();newSession()" title="New Chat">+</span>
     </div>
-    <div class="memory-list" id="memoryList">
-      <div class="memory-empty">输入关键词搜索历史记忆</div>
+    <div class="section-body" id="explorerBody">
+      <div class="sidebar-section" style="border:none">
+        <div class="section-header" onclick="toggleSection(this)">▸ CAMELIA STUDIO</div>
+        <div class="section-body" id="sessionsSection">
+          <div class="session-list" id="sessionList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MEMORY section (hidden by default) -->
+  <div class="sidebar-section" id="memorySection" style="display:none">
+    <div class="section-header">▾ MEMORY</div>
+    <div class="section-body">
+      <div class="memory-box">
+        <input type="text" id="memorySearchInput"
+         placeholder="Search memories..."
+         oninput="searchMemory()">
+      </div>
+      <div class="memory-list" id="memoryList">
+        <div class="memory-empty">Type to search memories</div>
+      </div>
     </div>
   </div>
 </aside>
 
 <!-- ═══ 主区域 ═══ -->
 <div class="main">
-  <header class="header">
-    <div class="model-switcher">
+  <!-- 编辑器标签栏 -->
+  <div class="tabs-bar">
+    <div class="tab active">
+      <span class="tab-icon">💬</span>
+      <span>Camelia Chat</span>
+    </div>
+    <div class="tabs-spacer"></div>
+    <div class="tab-model">
       <select id="modelSelect" onchange="switchModel()">
-        <option>加载中...</option>
+        <option>loading...</option>
       </select>
     </div>
-  </header>
+  </div>
 
   <div id="switchNotify"></div>
 
-  <main class="chat" id="chat">
-    <div class="welcome" id="welcome">
-      <div class="welcome-icon">&#x1f338;</div>
-      <div class="welcome-title">Camelia Studio</div>
-      <div class="welcome-sub">AI 编程助手，随时待命</div>
+  <!-- 编辑器/聊天区 -->
+  <div class="editor-area">
+    <div class="chat" id="chat">
+      <div class="welcome" id="welcome">
+        <div class="welcome-icon">🌸</div>
+        <div class="welcome-title">Camelia Studio</div>
+        <div class="welcome-sub">AI coding assistant — ready</div>
+      </div>
     </div>
-  </main>
 
-  <div class="input-bar">
-    <div class="input-wrap">
-      <textarea id="input" rows="1" placeholder="输入消息，Enter 发送..."
-       onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
-      <button onclick="send()">发送</button>
+    <div class="input-bar">
+      <div class="input-wrap">
+        <textarea id="input" rows="1" placeholder="Ask anything... (Enter to send, Shift+Enter for newline)"
+         onkeydown="onKey(event)" oninput="autoResize(this)"></textarea>
+        <button onclick="send()">Send</button>
+      </div>
     </div>
-    <div class="input-hint">Shift + Enter 换行</div>
+  </div>
+</div>
+
+<!-- ═══ 底部面板 ═══ -->
+<div class="panel">
+  <div class="panel-tabs">
+    <button class="panel-tab active" onclick="activatePanelTab('output')">OUTPUT</button>
+    <button class="panel-tab" onclick="activatePanelTab('memory')">MEMORY LOG</button>
+  </div>
+  <div class="panel-content active" data-panel="output" id="panelOutput">
+    Camelia Studio — Ready.
+  </div>
+  <div class="panel-content" data-panel="memory" id="panelMemory">
+    Memory system initializing...
   </div>
 </div>
 
 <!-- ═══ 状态栏 ═══ -->
 <footer class="status-bar">
-  <span class="status-dot" id="statusDot" title="连接状态"></span>
-  <span class="status-item" id="statusModel">--</span>
+  <span class="status-item"><span class="dot"></span> connected</span>
+  <span class="status-item" id="statusModel">deepseek-chat</span>
   <span class="status-spacer"></span>
-  <span class="status-item status-mem" id="statusMem">🧠 0</span>
+  <span class="status-item" id="statusSession"></span>
+  <span class="status-item" id="statusMem">🧠 0</span>
 </footer>
 
 <script>
@@ -426,46 +435,72 @@ const chat = document.getElementById("chat");
 const input = document.getElementById("input");
 
 // ══════════════════════════════════════════════
-//  活动栏 / 侧边栏 切换
+//  活动栏切换
 // ══════════════════════════════════════════════
 document.getElementById("activityBar").addEventListener("click", e => {
   const btn = e.target.closest(".act-btn");
-  if (!btn) return;
-  activatePanel(btn.dataset.panel);
+  if (!btn || !btn.dataset.panel) return;
+
+  document.querySelectorAll(".act-btn").forEach(b => b.classList.remove("active"));
+  btn.classList.add("active");
+
+  const panel = btn.dataset.panel;
+  const sidebar = document.getElementById("sidebar");
+  const memorySec = document.getElementById("memorySection");
+  const explorerBody = document.getElementById("explorerBody");
+
+  if (panel === "memory") {
+    memorySec.style.display = "";
+    explorerBody.style.display = "none";
+    sidebar.classList.remove("collapsed");
+    searchMemory();
+  } else if (panel === "explorer") {
+    memorySec.style.display = "none";
+    explorerBody.style.display = "";
+    sidebar.classList.remove("collapsed");
+    loadSessionList();
+  } else if (panel === "chat") {
+    sidebar.classList.add("collapsed");
+  }
 });
 
-document.querySelector(".sidebar-tabs").addEventListener("click", e => {
-  const tab = e.target.closest(".sidebar-tab");
-  if (!tab) return;
-  activatePanel(tab.dataset.panel);
-});
-
-function activatePanel(name) {
-  // 活动栏按钮
-  document.querySelectorAll(".act-btn").forEach(b => {
-    b.classList.toggle("active", b.dataset.panel === name);
-  });
-  // 侧边栏标签
-  document.querySelectorAll(".sidebar-tab").forEach(t => {
-    t.classList.toggle("active", t.dataset.panel === name);
-  });
-  // 面板内容
-  document.querySelectorAll(".sidebar-panel").forEach(p => {
-    p.classList.toggle("active", p.dataset.panel === name);
-  });
-  // 确保侧边栏可见
-  document.getElementById("sidebar").classList.remove("collapsed");
-
-  if (name === "memory") searchMemory();
+// 侧边栏 section 折叠
+function toggleSection(header) {
+  const body = header.nextElementSibling;
+  if (!body || !body.classList.contains("section-body")) return;
+  body.classList.toggle("collapsed");
+  const arrow = header.querySelector("span");
+  if (arrow) {
+    arrow.textContent = body.classList.contains("collapsed")
+      ? arrow.textContent.replace("▾", "▸")
+      : arrow.textContent.replace("▸", "▾");
+  }
 }
 
-// 键盘快捷键
+// 底部面板 tab 切换
+function activatePanelTab(name) {
+  document.querySelectorAll(".panel-tab").forEach(t => t.classList.toggle("active", t.textContent.trim().toLowerCase().includes(name)));
+  document.querySelectorAll(".panel-content").forEach(p => p.classList.toggle("active", p.dataset.panel === name));
+}
+
+// 快捷键
 document.addEventListener("keydown", e => {
-  if (e.ctrlKey && e.key === "1") { e.preventDefault(); activatePanel("sessions"); }
-  if (e.ctrlKey && e.key === "2") { e.preventDefault(); activatePanel("memory"); }
-  if (e.ctrlKey && e.key === "b") { e.preventDefault();
-    document.getElementById("sidebar").classList.toggle("collapsed"); }
+  if (e.ctrlKey && e.shiftKey && e.key === "E") { e.preventDefault(); activateActivity("explorer"); }
+  if (e.ctrlKey && e.shiftKey && e.key === "M") { e.preventDefault(); activateActivity("memory"); }
+  if (e.ctrlKey && e.key === "b") { e.preventDefault(); document.getElementById("sidebar").classList.toggle("collapsed"); }
+  if (e.ctrlKey && e.key === "j") { e.preventDefault(); togglePanel(); }
 });
+
+function activateActivity(name) {
+  const btn = document.querySelector(`.act-btn[data-panel="${name}"]`);
+  if (btn) btn.click();
+}
+
+function togglePanel() {
+  const root = document.documentElement.style;
+  const current = getComputedStyle(document.documentElement).getPropertyValue('--panel-h').trim();
+  root.setProperty('--panel-h', current === '0px' ? '200px' : '0px');
+}
 
 // ══════════════════════════════════════════════
 //  WebSocket
@@ -474,12 +509,10 @@ let ws = null;
 function createWebSocket() {
   if (ws) { try { ws.close(); } catch {} }
   ws = new WebSocket("ws://" + location.host + "/ws");
-  ws.onerror = e => console.error("WebSocket 错误:", e);
+  ws.onerror = e => console.error("WS error:", e);
   ws.onmessage = handleWsMessage;
   ws.onopen = () => {
-    if (sessionId) {
-      ws.send(JSON.stringify({ type: "reconnect", session_id: sessionId }));
-    }
+    if (sessionId) ws.send(JSON.stringify({ type: "reconnect", session_id: sessionId }));
   };
 }
 createWebSocket();
@@ -498,29 +531,28 @@ async function loadSessionList() {
       div.className = "session-item" + (s.id === sessionId ? " active" : "");
       const info = document.createElement("div"); info.className = "info";
       const title = document.createElement("div"); title.className = "title";
-      title.textContent = s.title || "(空)";
+      title.textContent = s.title || "(empty)";
       const meta = document.createElement("div"); meta.className = "meta";
-      meta.textContent = s.count + " 条";
+      meta.textContent = s.count + " messages";
       info.appendChild(title); info.appendChild(meta);
-      const starBtn = document.createElement("span");
+      // actions
+      const actions = document.createElement("div"); actions.className = "actions";
+      const starBtn = document.createElement("button");
       starBtn.textContent = s.starred ? "⭐" : "☆";
-      starBtn.style.cssText = "font-size:0.8rem;cursor:pointer;padding:2px 4px;border-radius:4px;opacity:0.6;transition:all 0.15s;";
-      starBtn.onmouseenter = () => starBtn.style.opacity = "1";
-      starBtn.onmouseleave = () => starBtn.style.opacity = "0.6";
+      starBtn.title = s.starred ? "Unstar" : "Star";
       starBtn.onclick = (e) => { e.stopPropagation(); toggleStar(s.id, starBtn); };
-      const delBtn = document.createElement("span"); delBtn.className = "del";
-      delBtn.textContent = "✕";
+      const delBtn = document.createElement("button"); delBtn.className = "del";
+      delBtn.textContent = "✕"; delBtn.title = "Delete";
       delBtn.onclick = (e) => { e.stopPropagation(); delSession(s.id); };
-      div.appendChild(info); div.appendChild(starBtn); div.appendChild(delBtn);
+      actions.appendChild(starBtn); actions.appendChild(delBtn);
+      div.appendChild(info); div.appendChild(actions);
       div.onclick = () => switchSession(s.id);
       list.appendChild(div);
     });
-  } catch(err) { console.error("加载会话列表失败:", err); }
+  } catch(err) { console.error("loadSessionList:", err); }
 }
 
-function escapeHtml(s) {
-  const d = document.createElement("div"); d.textContent = s; return d.innerHTML;
-}
+function escapeHtml(s) { const d = document.createElement("div"); d.textContent = s; return d.innerHTML; }
 
 function renderMarkdown(text) {
   let html = escapeHtml(text);
@@ -537,15 +569,15 @@ async function switchSession(id) {
     const w = document.getElementById("welcome");
     if (w) w.style.display = "none";
     const res = await fetch("/api/sessions/" + id);
-    if (!res.ok) { console.error("加载会话失败:", res.status); return; }
+    if (!res.ok) { console.error("load failed:", res.status); return; }
     const data = await res.json();
     data.messages.forEach(m => {
       if (m.role === "user") addMsg("user", m.content);
       else if (m.role === "assistant") addMsg("assistant", m.content);
     });
-    updateStatusSession(id);
+    updateInfoBar();
     chat.scrollTop = chat.scrollHeight;
-  } catch(err) { console.error("切换会话失败:", err); }
+  } catch(err) { console.error("switchSession:", err); }
 }
 
 async function toggleStar(id, btn) {
@@ -559,13 +591,10 @@ async function delSession(id) {
   if (sessionId === id) {
     sessionId = null; chat.innerHTML = "";
     document.getElementById("welcome").style.display = "";
-    updateStatusSession(null);
     try {
       const res = await fetch("/api/sessions");
       const data = await res.json();
-      if (data.sessions && data.sessions.length > 0) {
-        await switchSession(data.sessions[0].id); return;
-      }
+      if (data.sessions && data.sessions.length > 0) { await switchSession(data.sessions[0].id); return; }
     } catch {}
   }
   loadSessionList();
@@ -575,45 +604,37 @@ async function newSession() {
   sessionId = null; isGenerating = false; pendingModelSwitch = null;
   hideSwitchNotification(); chat.innerHTML = "";
   document.getElementById("welcome").style.display = "";
-  updateStatusSession(null);
-  loadSessionList();
+  loadSessionList(); updateInfoBar();
 }
 
 // ══════════════════════════════════════════════
 //  记忆搜索
 // ══════════════════════════════════════════════
-let memoryTimer = null;
+let memTimer = null;
 async function searchMemory() {
-  clearTimeout(memoryTimer);
-  memoryTimer = setTimeout(async () => {
+  clearTimeout(memTimer);
+  memTimer = setTimeout(async () => {
     const q = document.getElementById("memorySearchInput").value.trim();
     const list = document.getElementById("memoryList");
-    if (!q) {
-      list.innerHTML = '<div class="memory-empty">输入关键词搜索历史记忆</div>';
-      return;
-    }
-    list.innerHTML = '<div class="memory-empty">搜索中...</div>';
+    if (!q) { list.innerHTML = '<div class="memory-empty">Type to search</div>'; return; }
+    list.innerHTML = '<div class="memory-empty">Searching...</div>';
     try {
       const res = await fetch(`/api/memory/search?q=${encodeURIComponent(q)}`);
       const data = await res.json();
       if (!data.memories || data.memories.length === 0) {
-        list.innerHTML = '<div class="memory-empty">未找到相关记忆</div>';
-        return;
+        list.innerHTML = '<div class="memory-empty">No results</div>'; return;
       }
       list.innerHTML = "";
       data.memories.forEach(mem => {
-        const div = document.createElement("div");
-        div.className = "memory-item";
+        const div = document.createElement("div"); div.className = "memory-item";
         const title = document.createElement("div"); title.className = "mem-title";
-        title.textContent = (mem.metadata && mem.metadata.title) || "记忆";
+        title.textContent = (mem.metadata && mem.metadata.title) || "Memory";
         const preview = document.createElement("div"); preview.className = "mem-preview";
         preview.textContent = mem.content || "";
         div.appendChild(title); div.appendChild(preview);
         list.appendChild(div);
       });
-    } catch (e) {
-      list.innerHTML = '<div class="memory-empty">搜索失败</div>';
-    }
+    } catch { list.innerHTML = '<div class="memory-empty">Search failed</div>'; }
   }, 400);
 }
 
@@ -625,8 +646,13 @@ async function loadMemoryStats() {
   } catch {}
 }
 
+function updateInfoBar() {
+  const el = document.getElementById("statusSession");
+  el.textContent = sessionId || "";
+}
+
 // ══════════════════════════════════════════════
-//  消息
+//  消息渲染
 // ══════════════════════════════════════════════
 function addMsg(role, text) {
   const w = document.getElementById("welcome");
@@ -652,35 +678,27 @@ function handleWsMessage(e) {
     const event = JSON.parse(e.data);
     if (event.type === "reconnected") {
       if (event.session_id) sessionId = event.session_id;
-      loadSessionList();
-      processQueue();
-      return;
+      loadSessionList(); updateInfoBar(); processQueue(); return;
     }
     if (event.type === "session_created") {
-      sessionId = event.session_id;
-      updateStatusSession(sessionId);
-      loadSessionList();
-      isGenerating = false;
+      sessionId = event.session_id; updateInfoBar(); loadSessionList(); isGenerating = false;
     } else if (event.type === "session_saved") {
       loadSessionList(); loadMemoryStats();
     } else if (event.type === "session_renamed") {
       loadSessionList();
     } else if (event.type === "memory_found") {
-      // 记忆注入通知已在后端静默处理，仅更新状态
+      logPanel(`Memory: ${event.count} relevant memories found`);
     } else if (event.type === "tool_start") {
       isGenerating = true; streamDiv = null;
-      addMsg("tool-tool-start", "正在调用 " + event.name + "...");
+      addMsg("tool-tool-start", "🔧 " + event.name + "...");
+      logPanel(`Tool: ${event.name}`);
     } else if (event.type === "tool_end") {
-      addMsg("tool-tool-end", event.name + " → " + (event.result || "").slice(0, 80));
+      addMsg("tool-tool-end", event.name + " → " + (event.result || "").slice(0, 100));
+      logPanel(`Result: ${(event.result || '').slice(0, 200)}`);
     } else if (event.type === "stream") {
       isGenerating = true;
-      const w = document.getElementById("welcome");
-      if (w) w.style.display = "none";
-      if (!streamDiv) {
-        streamDiv = document.createElement("div");
-        streamDiv.className = "msg assistant";
-        chat.appendChild(streamDiv);
-      }
+      document.getElementById("welcome").style.display = "none";
+      if (!streamDiv) { streamDiv = document.createElement("div"); streamDiv.className = "msg assistant"; chat.appendChild(streamDiv); }
       streamDiv.textContent = (streamDiv.textContent || "") + event.content;
       chat.scrollTo({ top: chat.scrollHeight, behavior: "smooth" });
     } else if (event.type === "text") {
@@ -688,10 +706,15 @@ function handleWsMessage(e) {
       else { addMsg("assistant", event.content); }
       finishGeneration();
     } else if (event.type === "error") {
-      streamDiv = null; addMsg("tool-tool-error", event.content);
-      finishGeneration();
+      streamDiv = null; addMsg("tool-tool-error", event.content); finishGeneration();
     }
-  } catch(err) { console.error("消息处理失败:", err); }
+  } catch(err) { console.error("handleWsMessage:", err); }
+}
+
+function logPanel(msg) {
+  const el = document.getElementById("panelOutput");
+  const time = new Date().toLocaleTimeString();
+  el.textContent = `[${time}] ${msg}` + (el.textContent.includes("Ready") ? "" : "\n" + el.textContent);
 }
 
 function finishGeneration() {
@@ -708,161 +731,91 @@ function finishGeneration() {
 //  发送 + 队列
 // ══════════════════════════════════════════════
 let messageQueue = [];
-
 function send() {
-  const text = input.value.trim();
-  if (!text) return;
+  const text = input.value.trim(); if (!text) return;
   input.value = ""; autoResize(input);
-
-  if (isGenerating || pendingModelSwitch) {
-    messageQueue.push(text);
-    showSwitchNotification("消息已加入队列（" + messageQueue.length + " 条等待中）");
-    return;
-  }
+  if (isGenerating || pendingModelSwitch) { messageQueue.push(text); showSwitchNotification("Queued (" + messageQueue.length + ")"); return; }
   deliverMessage(text);
 }
-
 function deliverMessage(text) {
-  try {
-    addMsg("user", text);
-    isGenerating = true;
-    ws.send(JSON.stringify({ content: text, session_id: sessionId }));
-  } catch(e) { console.error("发送失败:", e); }
+  try { addMsg("user", text); isGenerating = true; ws.send(JSON.stringify({ content: text, session_id: sessionId })); }
+  catch(e) { console.error("send:", e); }
 }
-
-function processQueue() {
-  if (messageQueue.length > 0) {
-    hideSwitchNotification();
-    deliverMessage(messageQueue.shift());
-  }
-}
-
-function onKey(e) {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
-}
-
-function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 120) + "px"; }
+function processQueue() { if (messageQueue.length > 0) { hideSwitchNotification(); deliverMessage(messageQueue.shift()); } }
+function onKey(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }
+function autoResize(el) { el.style.height = "auto"; el.style.height = Math.min(el.scrollHeight, 100) + "px"; }
 
 // ══════════════════════════════════════════════
-//  模型切换器
+//  模型切换
 // ══════════════════════════════════════════════
 let modelOptions = [];
-
 async function initModelSwitcher() {
   const select = document.getElementById("modelSelect");
   try {
-    let currentModel = "deepseek-chat";
-    try {
-      const configRes = await fetch("/api/config");
-      const config = await configRes.json();
-      currentModel = config.model || currentModel;
-    } catch {}
-
+    let cur = "deepseek-chat";
+    try { const cr = await fetch("/api/config"); cur = (await cr.json()).model || cur; } catch {}
     if (window.settings && window.settings.getProviders) {
       const data = await window.settings.getProviders();
       modelOptions = [];
       (data.providers || []).forEach(p => {
         if (!p.api_key || p.api_key === '****' || p.api_key === '***') return;
-        (p.models || []).forEach(m => {
-          modelOptions.push({ providerId: p.id, providerName: p.name, model: m });
-        });
+        (p.models || []).forEach(m => modelOptions.push({ pid: p.id, pname: p.name, model: m }));
       });
     }
-
     select.innerHTML = "";
-    if (modelOptions.length === 0) {
-      select.innerHTML = '<option>无提供商，请在设置中添加</option>';
-    } else {
-      modelOptions.forEach(opt => {
-        const option = document.createElement("option");
-        option.value = opt.providerId + ":::" + opt.model;
-        option.textContent = opt.providerName + " / " + opt.model;
-        if (opt.model === currentModel) option.selected = true;
-        select.appendChild(option);
-      });
-    }
-  } catch (e) {
-    console.error("初始化模型切换器失败:", e);
-    select.innerHTML = '<option>加载失败</option>';
-  }
+    if (modelOptions.length === 0) select.innerHTML = '<option>No provider configured</option>';
+    else modelOptions.forEach(opt => {
+      const o = document.createElement("option");
+      o.value = opt.pid + ":::" + opt.model;
+      o.textContent = opt.pname + " / " + opt.model;
+      if (opt.model === cur) o.selected = true;
+      select.appendChild(o);
+    });
+  } catch { select.innerHTML = '<option>Error</option>'; }
 }
 
 async function switchModel() {
   const select = document.getElementById("modelSelect");
-  const value = select.value;
-  if (!value || !value.includes(":::")) return;
-  const [providerId, model] = value.split(":::");
-
-  if (!window.settings || !window.settings.setActive) {
-    alert("模型切换仅在桌面应用中可用"); return;
-  }
-
+  const val = select.value; if (!val || !val.includes(":::")) return;
+  const [pid, model] = val.split(":::");
+  if (!window.settings || !window.settings.setActive) { alert("Model switch only in desktop app"); return; }
   if (isGenerating) {
     select.disabled = true;
     try {
-      const data = await window.settings.saveActive(providerId, model);
-      if (data.ok) {
-        pendingModelSwitch = { providerId, model };
-        showSwitchNotification("模型将在回复完成后切换");
-      } else {
-        showSwitchNotification("切换失败: " + (data.error || "未知错误"));
-        select.disabled = false;
-      }
-    } catch (e) { showSwitchNotification("切换失败: " + e.message); select.disabled = false; }
+      const d = await window.settings.saveActive(pid, model);
+      if (d.ok) { pendingModelSwitch = { providerId: pid, model }; showSwitchNotification("Switching after reply..."); }
+      else { showSwitchNotification("Failed: " + d.error); select.disabled = false; }
+    } catch(e) { showSwitchNotification("Failed: " + e.message); select.disabled = false; }
     return;
   }
-
-  select.disabled = true;
-  applyModelSwitch(providerId, model);
+  select.disabled = true; applyModelSwitch(pid, model);
 }
 
-async function applyModelSwitch(providerId, model) {
+async function applyModelSwitch(pid, model) {
   const select = document.getElementById("modelSelect");
   try {
-    const data = await window.settings.setActive(providerId, model);
-    if (!data.ok) { alert("切换失败: " + (data.error || "未知错误")); select.disabled = false; return; }
-    createWebSocket();
-    await new Promise(r => setTimeout(r, 800));
-    await initModelSwitcher();
-    select.disabled = false;
-  } catch (e) { alert("切换失败: " + e.message); select.disabled = false; }
+    const d = await window.settings.setActive(pid, model);
+    if (!d.ok) { alert("Switch failed: " + d.error); select.disabled = false; return; }
+    createWebSocket(); await new Promise(r => setTimeout(r, 800));
+    await initModelSwitcher(); select.disabled = false;
+  } catch(e) { alert("Switch failed: " + e.message); select.disabled = false; }
 }
 
-function showSwitchNotification(msg) {
-  const el = document.getElementById("switchNotify");
-  el.textContent = "⏳ " + msg; el.style.display = "block";
-  setTimeout(() => { el.style.display = "none"; }, 4000);
-}
-function hideSwitchNotification() {
-  document.getElementById("switchNotify").style.display = "none";
-}
+function showSwitchNotification(msg) { const el = document.getElementById("switchNotify"); el.textContent = msg; el.style.display = "block"; setTimeout(() => el.style.display = "none", 4000); }
+function hideSwitchNotification() { document.getElementById("switchNotify").style.display = "none"; }
 
 // ══════════════════════════════════════════════
 //  状态栏
 // ══════════════════════════════════════════════
-function updateStatusModel(model, baseUrl) {
-  document.getElementById("statusModel").textContent =
-    (baseUrl ? baseUrl.replace(/^https?:\/\//, '') + " · " : "") + (model || "--");
-}
-
-function updateStatusSession(id) {
-  // 在状态栏不显示，保持简洁
-}
-
-async function checkConnection() {
-  const dot = document.getElementById("statusDot");
+async function refreshStatus() {
   try {
     const r = await fetch("/api/health");
-    dot.style.background = r.ok ? "var(--sage)" : "#e05555";
-  } catch { dot.style.background = "#e05555"; }
-}
-
-async function refreshStatus() {
-  checkConnection();
+    document.querySelector(".status-bar .dot").style.background = r.ok ? "#6a9955" : "#f44747";
+  } catch { document.querySelector(".status-bar .dot").style.background = "#f44747"; }
   try {
-    const configRes = await fetch("/api/config");
-    const config = await configRes.json();
-    updateStatusModel(config.model, config.base_url);
+    const cr = await fetch("/api/config");
+    const c = await cr.json();
+    document.getElementById("statusModel").textContent = c.model || "--";
   } catch {}
   loadMemoryStats();
 }
@@ -877,12 +830,9 @@ async function refreshStatus() {
   try {
     const res = await fetch("/api/sessions");
     const data = await res.json();
-    if (data.sessions && data.sessions.length > 0) {
-      await switchSession(data.sessions[0].id);
-    }
+    if (data.sessions && data.sessions.length > 0) await switchSession(data.sessions[0].id);
   } catch {}
 })();
-
 setInterval(refreshStatus, 30000);
 </script>
 </body>
