@@ -209,6 +209,80 @@ async def api_memory_stats():
         return {"count": 0}
 
 
+# ─── 文件系统 API ──────────────────────────────
+
+@app.get("/api/files")
+async def api_list_files(path: str = "~"):
+    """列出目录内容。复用 agent.py 的路径安全沙箱。"""
+    from agent import _check_path
+
+    safe = _check_path(path)
+    if isinstance(safe, str):          # _check_path 校验失败 → 返回错误字符串
+        return {"error": safe}
+
+    if not safe.exists() or not safe.is_dir():
+        return {"error": f"目录不存在: {path}"}
+
+    items = []
+    for item in sorted(safe.iterdir()):
+        if item.name.startswith("."):  # 跳过隐藏文件（.git .venv 等）
+            continue
+        entry = {"name": item.name, "type": "dir" if item.is_dir() else "file"}
+        if not item.is_dir():          # 文件才显示大小
+            entry["size"] = item.stat().st_size
+        items.append(entry)
+
+    return {"path": str(safe), "items": items}
+
+
+@app.get("/api/files/read")
+async def api_read_file(path: str = ""):
+    """读取文本文件内容。"""
+    from agent import _check_path
+
+    if not path or path == "~":
+        return {"error": "请提供文件路径"}
+
+    safe = _check_path(path)
+    if isinstance(safe, str):
+        return {"error": safe}
+
+    if not safe.exists():
+        return {"error": f"文件不存在: {path}"}
+    if safe.is_dir():
+        return {"error": f"这是一个目录: {path}"}
+
+    try:
+        content = safe.read_text(encoding="utf-8", errors="replace")
+        if len(content) > 500 * 1024:  # 超过 500KB 截断
+            content = content[:500 * 1024] + "\n\n... (文件过大，已截断)"
+        return {"path": str(safe), "content": content, "size": safe.stat().st_size}
+    except Exception as e:
+        return {"error": f"读取失败: {e}"}
+
+
+@app.post("/api/files/write")
+async def api_write_file(data: dict):
+    """写入文件内容。{path, content}"""
+    from agent import _check_path
+
+    path = data.get("path", "")
+    content = data.get("content", "")
+    if not path:
+        return {"error": "请提供文件路径"}
+
+    safe = _check_path(path)
+    if isinstance(safe, str):
+        return {"error": safe}
+
+    try:
+        safe.parent.mkdir(parents=True, exist_ok=True)
+        safe.write_text(content, encoding="utf-8")
+        return {"ok": True, "path": str(safe)}
+    except Exception as e:
+        return {"error": f"写入失败: {e}"}
+
+
 # ─── WebSocket ─────────────────────────────────
 
 @app.websocket("/ws")

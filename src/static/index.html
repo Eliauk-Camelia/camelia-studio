@@ -348,6 +348,75 @@
     background: rgba(0,0,0,.4); cursor: pointer;
   }
   .overlay.show { display: block; }
+
+  /* ── 编辑器区域 ── */
+  .editor-panel {
+    position: relative; z-index: 1;
+    flex: 1; display: flex; flex-direction: column; min-width: 0;
+    background: var(--ink);
+    border-right: 1px solid rgba(255,255,255,0.04);
+  }
+  .tab-bar {
+    display: flex; overflow-x: auto; flex-shrink: 0;
+    background: var(--leaf);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    min-height: 36px;
+  }
+  .tab-bar::-webkit-scrollbar { height: 2px; }
+  .tab-bar::-webkit-scrollbar-thumb { background: var(--stone); }
+  .tab-item {
+    display: flex; align-items: center; gap: 6px;
+    padding: 8px 14px; font-size: 0.78rem;
+    color: var(--mist-dim); cursor: pointer;
+    border-right: 1px solid rgba(255,255,255,0.03);
+    white-space: nowrap; flex-shrink: 0;
+    transition: background 0.12s, color 0.12s;
+    user-select: none;
+  }
+  .tab-item:hover { background: var(--moss); color: var(--mist); }
+  .tab-item.active { background: var(--ink); color: var(--dew); }
+  .tab-item .tab-close {
+    font-size: 0.7rem; opacity: 0; padding: 1px 4px; border-radius: 3px;
+    transition: opacity 0.12s, background 0.12s;
+  }
+  .tab-item:hover .tab-close { opacity: 0.6; }
+  .tab-item .tab-close:hover { opacity: 1; background: rgba(220,80,80,0.2); }
+  .tab-item .tab-dirty { color: var(--petal); font-size: 0.6rem; }
+  .editor-container {
+    flex: 1; position: relative; overflow: hidden;
+  }
+  .editor-container .monaco-editor-wrapper {
+    position: absolute; inset: 0; display: none;
+  }
+  .editor-container .monaco-editor-wrapper.active { display: block; }
+  .editor-empty {
+    position: absolute; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--mist-dim); font-size: 0.85rem;
+    flex-direction: column; gap: 10px;
+  }
+  .editor-empty .big-icon { font-size: 3rem; opacity: 0.3; }
+
+  /* ── 开发面板（聊天 + 设置）── */
+  .chat-panel {
+    position: relative; z-index: 1;
+    width: 340px; flex-shrink: 0;
+    background: var(--leaf);
+    border-left: 1px solid rgba(255,255,255,0.04);
+    display: flex; flex-direction: column;
+  }
+  .chat-panel .header { flex-shrink: 0; }
+  .chat-panel .chat { position: relative; flex: 1; }
+  /* 聊天面板内部滚动条 */
+  .chat-panel .chat::-webkit-scrollbar, .chat-panel .session-list::-webkit-scrollbar { width: 4px; }
+  .chat-panel .chat::-webkit-scrollbar-thumb { background: var(--stone); border-radius: 10px; }
+
+  /* ── 移动端：隐藏编辑器和文件树，只显示聊天 ── */
+  @media (max-width: 900px) {
+    .editor-panel { display: none; }
+    .sidebar { width: 0; overflow: hidden; }
+    .chat-panel { width: 100%; }
+  }
 </style>
 </head>
 <body>
@@ -364,6 +433,7 @@
   <div class="sidebar-tabs">
     <button class="sidebar-tab active" onclick="switchSidebarTab('sessions')">会话</button>
     <button class="sidebar-tab" onclick="switchSidebarTab('memory')">记忆</button>
+    <button class="sidebar-tab" onclick="switchSidebarTab('files')">文件</button>
   </div>
   <div class="sidebar-panel active" id="sessionsPanel">
     <button class="sidebar-new" onclick="newSession()">+ 新对话</button>
@@ -377,10 +447,30 @@
       <div class="memory-empty">输入关键词搜索相关记忆</div>
     </div>
   </div>
+  <div class="sidebar-panel" id="filesPanel">
+    <div class="memory-search-box" style="display:flex;gap:4px;">
+      <input type="text" id="filePathInput" placeholder="路径，如 ~ 或 ~/Desktop" onkeydown="if(event.key==='Enter')loadFileTree()" style="flex:1;">
+      <button onclick="loadFileTree()" style="padding:8px 12px;background:var(--bark);border:1px solid var(--stone);border-radius:8px;color:var(--sage);cursor:pointer;font-family:'Noto Serif SC',serif;font-size:0.75rem;">打开</button>
+    </div>
+    <div class="memory-result-list" id="fileTree">
+      <div class="memory-empty">输入路径后回车查看</div>
+    </div>
+  </div>
 </aside>
 
-<!-- ── 主区域 ── -->
-<div class="main">
+<!-- ── 编辑器区域 ── -->
+<div class="editor-panel" id="editorPanel">
+  <div class="tab-bar" id="tabBar"></div>
+  <div class="editor-container" id="editorContainer">
+    <div class="editor-empty" id="editorPlaceholder">
+      <div class="big-icon">&#x1f338;</div>
+      <div>从文件树中选择文件开始编辑</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── 聊天面板 ── -->
+<div class="chat-panel">
   <header class="header">
     <button class="menu-btn" onclick="toggleSidebar()">&#9776;</button>
     <div class="model-switcher">
@@ -449,11 +539,17 @@ function toggleSidebar() {
 // ─── 侧边栏标签切换 ───
 function switchSidebarTab(name) {
   document.querySelectorAll(".sidebar-tab").forEach(function(t) {
-    t.classList.toggle("active", t.textContent.includes(name === "sessions" ? "会话" : "记忆"));
+    var tabName = t.textContent;
+    if (tabName.includes("会话")) tabName = "sessions";
+    else if (tabName.includes("记忆")) tabName = "memory";
+    else if (tabName.includes("文件")) tabName = "files";
+    t.classList.toggle("active", tabName === name);
   });
   document.getElementById("sessionsPanel").classList.toggle("active", name === "sessions");
   document.getElementById("memoryPanel").classList.toggle("active", name === "memory");
+  document.getElementById("filesPanel").classList.toggle("active", name === "files");
   if (name === "memory") searchMemory();
+  if (name === "files") loadFileTree();
 }
 
 // ─── 记忆搜索 ───
@@ -483,6 +579,277 @@ function searchMemory() {
       });
     } catch(e) { list.innerHTML = '<div class="memory-empty">搜索失败</div>'; }
   }, 400);
+}
+
+// ─── 文件树 ───
+let fileTreePath = "~";  // 当前文件树显示的路径
+
+async function loadFileTree(path) {
+  if (path !== undefined) fileTreePath = path;
+  document.getElementById("filePathInput").value = fileTreePath;
+  var tree = document.getElementById("fileTree");
+
+  try {
+    var res = await fetch("/api/files?path=" + encodeURIComponent(fileTreePath));
+    var data = await res.json();
+    if (data.error) { tree.innerHTML = '<div class="memory-empty">' + escapeHtml(data.error) + '</div>'; return; }
+
+    // 更新路径输入框
+    document.getElementById("filePathInput").value = data.path;
+
+    tree.innerHTML = "";
+
+    // 返回上级按钮（在任何内容之前渲染，空目录也能返回）
+    if (data.path !== "/" && data.path !== "/home" && data.path !== "/home/arch") {
+      var up = document.createElement("div"); up.className = "file-item";
+      up.style.cssText = "color:var(--sage);";
+      up.textContent = "📂 .. (上级目录)";
+      up.onclick = function() {
+        var parts = data.path.split("/");
+        parts.pop();
+        var parentPath = parts.join("/") || "/";
+        // 安全限制：不跳出白名单
+        if (!parentPath.startsWith("/home/") && parentPath !== "/tmp") parentPath = "~";
+        loadFileTree(parentPath);
+      };
+      tree.appendChild(up);
+    }
+
+    // 空目录提示
+    if (!data.items || data.items.length === 0) {
+      var empty = document.createElement("div");
+      empty.className = "memory-empty";
+      empty.textContent = "(空目录)";
+      tree.appendChild(empty);
+    }
+
+    // 先渲染目录，再渲染文件
+    data.items.filter(function(i) { return i.type === "dir"; }).forEach(function(item) {
+      var div = document.createElement("div"); div.className = "file-item";
+      div.style.cssText = "padding:6px 10px;margin:1px 0;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:0.78rem;transition:background 0.12s;";
+      div.innerHTML = '<span style="color:var(--sage);">📁</span> ' + escapeHtml(item.name);
+      div.onmouseenter = function() { div.style.background = "var(--bark)"; };
+      div.onmouseleave = function() { div.style.background = ""; };
+      div.onclick = function() {
+        loadFileTree(data.path + "/" + item.name);
+      };
+      tree.appendChild(div);
+    });
+
+    data.items.filter(function(i) { return i.type === "file"; }).forEach(function(item) {
+      var div = document.createElement("div"); div.className = "file-item";
+      div.style.cssText = "padding:6px 10px;margin:1px 0;border-radius:6px;cursor:pointer;display:flex;align-items:center;gap:6px;font-size:0.78rem;transition:background 0.12s;";
+      // 根据扩展名给不同图标
+      var icon = "📄";
+      var ext = item.name.split(".").pop().toLowerCase();
+      if (["c","h","cpp","hpp","py","js","ts","rs","go","java"].includes(ext)) icon = "📝";
+      else if (["md","txt","log","json","yaml","yml","toml"].includes(ext)) icon = "📋";
+      else if (["png","jpg","jpeg","gif","svg","bmp"].includes(ext)) icon = "🖼️";
+      div.innerHTML = '<span>' + icon + '</span> ' + escapeHtml(item.name);
+      div.onmouseenter = function() { div.style.background = "var(--bark)"; };
+      div.onmouseleave = function() { div.style.background = ""; };
+      div.onclick = function() {
+        openFile(data.path + "/" + item.name);
+      };
+      tree.appendChild(div);
+    });
+  } catch(e) {
+    tree.innerHTML = '<div class="memory-empty">加载失败: ' + escapeHtml(e.message) + '</div>';
+  }
+}
+
+// ─── Monaco Editor 状态 ───
+let monacoReady = false;
+let openTabs = [];         // [{path, name, editor, modified, wrapperEl}]
+let activeTabIdx = -1;
+
+function getLanguage(filePath) {
+  var ext = filePath.split('.').pop().toLowerCase();
+  var map = {
+    c:'c', h:'c', cpp:'cpp', hpp:'cpp', cc:'cpp', cxx:'cpp',
+    py:'python', js:'javascript', ts:'typescript', jsx:'javascript', tsx:'typescript',
+    html:'html', css:'css', json:'json', xml:'xml', yaml:'yaml', yml:'yaml',
+    md:'markdown', rs:'rust', go:'go', java:'java', sh:'shell', bash:'shell',
+    cmake:'cmake', toml:'ini', ini:'ini', cfg:'ini', makefile:'makefile',
+    sql:'sql', php:'php', rb:'ruby', swift:'swift', kt:'kotlin',
+  };
+  return map[ext] || 'plaintext';
+}
+
+async function openFile(filePath) {
+  // Monaco 还没加载好，排队等待
+  if (!monacoReady) {
+    window._pendingOpen = filePath;
+    // 在标签栏显示加载中
+    document.getElementById('editorPlaceholder').innerHTML =
+      '<div class="big-icon">⏳</div><div>Monaco Editor 加载中...</div>';
+    return;
+  }
+
+  // 检查是否已经打开
+  var existingIdx = openTabs.findIndex(function(t) { return t.path === filePath; });
+  if (existingIdx >= 0) {
+    switchTab(existingIdx);
+    return;
+  }
+
+  // 获取文件内容
+  try {
+    var res = await fetch('/api/files/read?path=' + encodeURIComponent(filePath));
+    var data = await res.json();
+    if (data.error) {
+      // 文件读不了（比如二进制），在聊天区提示
+      addMsg('tool-tool-error', '无法打开: ' + data.error);
+      return;
+    }
+    var content = data.content || '';
+  } catch(e) {
+    addMsg('tool-tool-error', '读取文件失败: ' + e.message);
+    return;
+  }
+
+  // 创建编辑器 DOM 容器
+  var wrapper = document.createElement('div');
+  wrapper.className = 'monaco-editor-wrapper';
+  wrapper.style.cssText = 'position:absolute;inset:0;display:none;';
+  document.getElementById('editorContainer').appendChild(wrapper);
+
+  // 创建 Monaco 编辑器实例
+  var editor = monaco.editor.create(wrapper, {
+    value: content,
+    language: getLanguage(filePath),
+    theme: 'camelia-dark',
+    fontSize: 14,
+    fontFamily: "'JetBrains Mono', monospace",
+    minimap: { enabled: true, scale: 1, showSlider: 'mouseover' },
+    scrollBeyondLastLine: false,
+    wordWrap: 'off',
+    lineNumbers: 'on',
+    renderWhitespace: 'selection',
+    tabSize: 4,
+    automaticLayout: true,
+  });
+
+  // 监听修改状态
+  editor.onDidChangeModelContent(function() {
+    var tab = openTabs.find(function(t) { return t.editor === editor; });
+    if (tab && !tab.modified) {
+      tab.modified = true;
+      renderTabBar();
+    }
+  });
+
+  // Ctrl+S 保存
+  editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, function() {
+    saveCurrentFile();
+  });
+
+  var name = filePath.split('/').pop();
+  var tabIdx = openTabs.length;
+  openTabs.push({ path: filePath, name: name, editor: editor, modified: false, wrapperEl: wrapper });
+  switchTab(tabIdx);
+
+  // 隐藏空状态占位
+  document.getElementById('editorPlaceholder').style.display = 'none';
+}
+
+function switchTab(idx) {
+  if (idx < 0 || idx >= openTabs.length) return;
+
+  // 隐藏所有编辑器
+  openTabs.forEach(function(t) { t.wrapperEl.style.display = 'none'; });
+
+  // 显示选中的编辑器
+  var tab = openTabs[idx];
+  tab.wrapperEl.style.display = 'block';
+  activeTabIdx = idx;
+
+  // 聚焦编辑器
+  setTimeout(function() { tab.editor.focus(); }, 50);
+
+  renderTabBar();
+}
+
+function closeTab(idx) {
+  if (idx < 0 || idx >= openTabs.length) return;
+  var tab = openTabs[idx];
+
+  // 销毁 Monaco 实例
+  tab.editor.dispose();
+  tab.wrapperEl.remove();
+
+  openTabs.splice(idx, 1);
+
+  // 调整活跃标签
+  if (openTabs.length === 0) {
+    activeTabIdx = -1;
+    document.getElementById('editorPlaceholder').style.display = '';
+  } else if (idx <= activeTabIdx) {
+    activeTabIdx = Math.min(activeTabIdx, openTabs.length - 1);
+  }
+  if (activeTabIdx >= 0) {
+    openTabs[activeTabIdx].wrapperEl.style.display = 'block';
+    setTimeout(function() { openTabs[activeTabIdx].editor.focus(); }, 50);
+  }
+  renderTabBar();
+}
+
+function renderTabBar() {
+  var bar = document.getElementById('tabBar');
+  bar.innerHTML = '';
+
+  openTabs.forEach(function(tab, i) {
+    var item = document.createElement('div');
+    item.className = 'tab-item' + (i === activeTabIdx ? ' active' : '');
+
+    // 修改标记
+    if (tab.modified) {
+      var dot = document.createElement('span');
+      dot.className = 'tab-dirty'; dot.textContent = '●';
+      item.appendChild(dot);
+    }
+
+    var label = document.createElement('span');
+    label.textContent = tab.name;
+    item.appendChild(label);
+
+    var close = document.createElement('span');
+    close.className = 'tab-close'; close.textContent = '✕';
+    close.onclick = function(e) { e.stopPropagation(); closeTab(i); };
+    item.appendChild(close);
+
+    item.onclick = function() { switchTab(i); };
+
+    // 中键关闭
+    item.onmousedown = function(e) {
+      if (e.button === 1) { e.preventDefault(); closeTab(i); }
+    };
+
+    bar.appendChild(item);
+  });
+}
+
+async function saveCurrentFile() {
+  if (activeTabIdx < 0) return;
+  var tab = openTabs[activeTabIdx];
+  var content = tab.editor.getValue();
+
+  try {
+    var res = await fetch('/api/files/write', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: tab.path, content: content }),
+    });
+    var data = await res.json();
+    if (data.ok) {
+      tab.modified = false;
+      renderTabBar();
+    } else {
+      addMsg('tool-tool-error', '保存失败: ' + (data.error || ''));
+    }
+  } catch(e) {
+    addMsg('tool-tool-error', '保存失败: ' + e.message);
+  }
 }
 
 function updateMemoryBadge() {
@@ -875,6 +1242,43 @@ function checkConnection() {
   } catch {}
 })();
 setInterval(checkConnection, 30000);
+</script>
+
+<!-- Monaco Editor (CDN) -->
+<script src="https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs/loader.js"></script>
+<script>
+require.config({ paths: { vs: 'https://cdn.jsdelivr.net/npm/monaco-editor@0.45.0/min/vs' } });
+require(['vs/editor/editor.main'], function() {
+  // 山茶花暗色主题
+  monaco.editor.defineTheme('camelia-dark', {
+    base: 'vs-dark', inherit: true,
+    rules: [
+      { token: 'comment', foreground: '5a655c', fontStyle: 'italic' },
+      { token: 'keyword', foreground: 'e8927c' },
+      { token: 'string', foreground: '8ba389' },
+      { token: 'number', foreground: 'e8927c' },
+      { token: 'type', foreground: '8ba389' },
+      { token: 'function', foreground: 'e8927c' },
+    ],
+    colors: {
+      'editor.background': '#0d1210',
+      'editor.foreground': '#f0ece6',
+      'editor.lineHighlightBackground': '#141c1822',
+      'editor.selectionBackground': '#2c383240',
+      'editorCursor.foreground': '#e8927c',
+      'editorLineNumber.foreground': '#5a655c',
+      'editorLineNumber.activeForeground': '#8b958b',
+      'editor.inactiveSelectionBackground': '#2c383220',
+    },
+  });
+  monacoReady = true;
+
+  // 如果之前有排队的文件打开请求，现在执行
+  if (window._pendingOpen) {
+    openFile(window._pendingOpen);
+    window._pendingOpen = null;
+  }
+});
 </script>
 </body>
 </html>

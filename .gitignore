@@ -9,3 +9,5 @@ dist/
 .history/
 node_modules/
 ~/.camelia-studio/sessions/
+.vscode/
+qt/build/
